@@ -1,0 +1,130 @@
+# ============================================================================
+# docker-compose.yml - Orquestração de contêineres para desenvolvimento
+# ============================================================================
+# Define os serviços e configurações necessárias para o ambiente de dev
+# ============================================================================
+
+version: '3.8'
+
+# ============================================================================
+# SERVIÇOS
+# ============================================================================
+services:
+  # Serviço principal da aplicação Node.js
+  app:
+    # Build da imagem a partir do Dockerfile.dev
+    build:
+      context: .
+      dockerfile: dockerfile.dev
+
+    # Nome do contêiner quando inicializado
+    container_name: minicurso-app-dev
+
+    # Variáveis de ambiente da aplicação
+    environment:
+      - NODE_ENV=development
+      - DEBUG=*
+      # Adicione outras variáveis de ambiente conforme necessário
+      # - PORT=3000
+      # - DATABASE_URL=mongodb://db:27017/seu-banco
+
+    # Mapeamento de portas (porta_host:porta_container)
+    ports:
+      - "3000:3000"  # Aplicação Node.js
+      - "9229:9229"  # Node.js debugger (V8 Inspector)
+
+    # Volumes para persistência e hot reload
+    volumes:
+      # Monta o código local no container para desenvolvimento
+      - .:/app
+      # Evita sobrescrever node_modules instalados no container
+      - /app/node_modules
+      # Volume para compartilhar dados entre serviços (opcional)
+      - app-data:/app/data
+
+    # Comando a executar ao iniciar o contêiner
+    command: npm run dev
+
+    # Política de reinicialização automática
+    restart: unless-stopped
+
+    # Aguarda o banco de dados antes de iniciar (se tiver serviço db)
+    # depends_on:
+    #   - db
+
+    # Rede customizada para comunicação entre serviços
+    networks:
+      - app-network
+
+    # Configurações de recursos (opcional)
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: '0.5'
+    #       memory: 512M
+
+  # ========================================================================
+  # SERVIÇO OPCIONAL: Banco de dados MongoDB
+  # ========================================================================
+  # Descomente as linhas abaixo se precisar de um banco de dados MongoDB
+  # db:
+  #   image: mongo:6.0-alpine
+  #   container_name: minicurso-db-dev
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: root
+  #     MONGO_INITDB_ROOT_PASSWORD: password
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb-data:/data/db
+  #   networks:
+  #     - app-network
+  #   restart: unless-stopped
+
+  # ========================================================================
+  # SERVIÇO OPCIONAL: Redis para cache/sessões
+  # ========================================================================
+  # Descomente as linhas abaixo se precisar de cache Redis
+  # cache:
+  #   image: redis:7-alpine
+  #   container_name: minicurso-cache-dev
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - app-network
+  #   restart: unless-stopped
+  #   command: redis-server --appendonly yes
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+# Define volumes para persistência de dados
+volumes:
+  app-data:
+    driver: local
+  # mongodb-data:
+  #   driver: local
+  # redis-data:
+  #   driver: local
+
+# ============================================================================
+# REDES
+# ============================================================================
+# Define redes customizadas para isolamento e comunicação entre contêineres
+networks:
+  app-network:
+    driver: bridge
+
+# ============================================================================
+# COMANDOS ÚTEIS:
+# ============================================================================
+# docker-compose up              → Inicia todos os serviços
+# docker-compose up -d           → Inicia em background
+# docker-compose down            → Para e remove os contêineres
+# docker-compose logs -f app     → Mostra logs da aplicação
+# docker-compose exec app sh     → Acessa terminal do container
+# docker-compose build           → Reconstrói as imagens
+# docker-compose ps              → Lista status dos serviços
+# ============================================================================

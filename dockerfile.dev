@@ -1,0 +1,61 @@
+# ============================================================================
+# Dockerfile.dev - Imagem para desenvolvimento
+# ============================================================================
+# Esta imagem é otimizada para desenvolvimento com suporte a hot reload,
+# logs verbosos e ferramentas de debug.
+# ============================================================================
+
+# Etapa 1: Base - Define a imagem base Node.js com suporte a desenvolvimento
+# ============================================================================
+FROM node:18-alpine AS base
+
+# Define o diretório de trabalho dentro do container
+WORKDIR /app
+
+# Instala ferramentas úteis para desenvolvimento
+RUN apk add --no-cache \
+    curl \
+    git \
+    bash \
+    vim
+
+# ============================================================================
+# Etapa 2: Dependências - Instala as dependências do projeto
+# ============================================================================
+FROM base AS dependencies
+
+# Copia os arquivos de dependências (package.json e package-lock.json)
+COPY package*.json ./
+
+# Instala as dependências npm (inclui devDependencies)
+# O flag --legacy-peer-deps resolve conflitos de versão de peer dependencies
+RUN npm ci --legacy-peer-deps
+
+# ============================================================================
+# Etapa 3: Desenvolvimento - Configuração final para ambiente de dev
+# ============================================================================
+FROM dependencies AS development
+
+# Copia todo o código-fonte do projeto
+COPY . .
+
+# Define o usuário node (evita executar como root)
+USER node
+
+# Expõe a porta padrão (ajuste conforme necessário)
+EXPOSE 3000
+
+# Define o comando padrão para iniciar a aplicação em modo desenvolvimento
+# Usa npm run dev para hot reload (ajuste conforme seu package.json)
+CMD ["npm", "run", "dev"]
+
+# ============================================================================
+# NOTAS DE USO:
+# ============================================================================
+# Build: docker build -f dockerfile.dev -t seu-projeto:dev .
+# Run:   docker run -it -p 3000:3000 -v $(pwd):/app seu-projeto:dev
+#
+# -v $(pwd):/app     → Monta o diretório local no container (hot reload)
+# -p 3000:3000       → Mapeia a porta 3000 do container para a máquina
+# -it                → Modo interativo com terminal
+# ============================================================================
